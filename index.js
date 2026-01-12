@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const bcrypt = require("bcrypt");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 2000;
@@ -8,10 +10,9 @@ const port = process.env.PORT || 2000;
 app.use(express.json());
 app.use(cors());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const uri = process.env.DB_URI;
+// ========= MongoDB Connection =========
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const uri = process.env.DB_URI;
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -19,7 +20,9 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-
+// ========= MongoDB Connection =========
+const db = client.db("book-worm");
+const userCollection = db.collection("users");
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -28,16 +31,35 @@ async function run() {
     app.get("/", (req, res) => {
       res.send("Hello World!");
     });
+    // ========= User Routes =========
+
+    // ========= User Post =========
+    app.post("/users", async (req, res) => {
+      const rawUser = req.body;
+      // password hash
+      const hashedPassword = await bcrypt.hash(rawUser.password, 10);
+      rawUser.password = hashedPassword;
+      // check if user already exists
+      const existingUser = await userCollection.findOne({
+        email: rawUser.email,
+      });
+      if (existingUser) {
+        return res.status(400).send({ message: "User already exists" });
+      }
+
+      const result = await userCollection.insertOne(rawUser); 
+      res.send(result);
+    });
 
 
-    
-
-
-
-
-
+    // ========= User Get =========
+    app.get("/users", async (req, res) => {
+      const cursor = userCollection.find(); 
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`);
+      console.log(`Database is breathing on http://localhost:${port}/`);
     });
 
     // Send a ping to confirm a successful connection
@@ -45,9 +67,8 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
   }
 }
 run().catch(console.dir);

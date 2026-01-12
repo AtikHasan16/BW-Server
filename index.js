@@ -28,13 +28,18 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    app.get("/", (req, res) => {
+    app.get("/api/", (req, res) => {
       res.send("Hello World!");
     });
     // ========= User Routes =========
+    app.get("/api/users", async (req, res) => {
+      const cursor = userCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
-    // ========= User Post =========
-    app.post("/users", async (req, res) => {
+    // ========= User Registration =========
+    app.post("/api/users", async (req, res) => {
       const rawUser = req.body;
       // password hash
       const hashedPassword = await bcrypt.hash(rawUser.password, 10);
@@ -47,17 +52,31 @@ async function run() {
         return res.status(400).send({ message: "User already exists" });
       }
 
-      const result = await userCollection.insertOne(rawUser); 
+      const result = await userCollection.insertOne(rawUser);
       res.send(result);
     });
 
+    // ========= User Login ========
+    app.post("/api/users/login", async (req, res) => {
+      const rawUser = req.body;
+      console.log(rawUser);
 
-    // ========= User Get =========
-    app.get("/users", async (req, res) => {
-      const cursor = userCollection.find(); 
-      const result = await cursor.toArray();
-      res.send(result);
+      const existingUser = await userCollection.findOne({
+        email: rawUser.email,
+      });
+      if (!existingUser) {
+        return res.status(400).send({ message: "User not found" });
+      }
+      const isPasswordMatched = await bcrypt.compare(
+        rawUser.password,
+        existingUser.password
+      );
+      if (!isPasswordMatched) {
+        return res.status(400).send({ message: "Invalid password" });
+      }
+      res.status(200).send({ message: "Login successful", existingUser });
     });
+
     app.listen(port, () => {
       console.log(`Database is breathing on http://localhost:${port}/`);
     });

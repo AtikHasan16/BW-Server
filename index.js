@@ -25,6 +25,8 @@ const db = client.db("book-worm");
 const userCollection = db.collection("users");
 const booksCollection = db.collection("books");
 const genresCollection = db.collection("genres");
+const tutorialsCollection = db.collection("tutorials");
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -153,6 +155,32 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await genresCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // ========= Tutorial Routes =========
+
+    // Get all tutorials
+    app.get("/api/tutorials", async (req, res) => {
+      const result = await tutorialsCollection
+        .find()
+        .sort({ _id: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+    // Add new tutorial
+    app.post("/api/tutorials", async (req, res) => {
+      const tutorialData = req.body;
+      const result = await tutorialsCollection.insertOne(tutorialData);
+      res.send(result);
+    });
+
+    // Delete tutorial
+    app.delete("/api/tutorials/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await tutorialsCollection.deleteOne(query);
       res.send(result);
     });
 

@@ -210,10 +210,10 @@ async function run() {
 
     // ========= Shelf Routes =========
     app.post("/api/shelves", async (req, res) => {
-      const { userId, bookId, shelf } = req.body;
-      const filter = { userId, bookId };
+      const { userId, bookInfo, shelf } = req.body;
+      const filter = { userId, bookInfo };
       const updateDoc = {
-        $set: { userId, bookId, shelf, updatedAt: new Date() },
+        $set: { userId, bookInfo, shelf, updatedAt: new Date() },
       };
       const result = await shelvesCollection.updateOne(filter, updateDoc, {
         upsert: true,

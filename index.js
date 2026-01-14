@@ -26,6 +26,8 @@ const userCollection = db.collection("users");
 const booksCollection = db.collection("books");
 const genresCollection = db.collection("genres");
 const tutorialsCollection = db.collection("tutorials");
+const shelvesCollection = db.collection("shelves");
+const reviewsCollection = db.collection("reviews");
 
 async function run() {
   try {
@@ -89,9 +91,31 @@ async function run() {
       res.send(result);
     });
 
-    // Get all books
+    // Get all books (with optional filtering)
     app.get("/api/books", async (req, res) => {
-      const result = await booksCollection.find().toArray();
+      const { search, genre } = req.query;
+      let query = {};
+
+      if (search) {
+        query.$or = [
+          { title: { $regex: search, $options: "i" } },
+          { author: { $regex: search, $options: "i" } },
+        ];
+      }
+
+      if (genre) {
+        query.genre = genre;
+      }
+
+      const result = await booksCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Get single book details
+    app.get("/api/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await booksCollection.findOne(query);
       res.send(result);
     });
 
@@ -181,6 +205,43 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await tutorialsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // ========= Shelf Routes =========
+    app.post("/api/shelves", async (req, res) => {
+      const { userId, bookId, shelf } = req.body;
+      const filter = { userId, bookId };
+      const updateDoc = {
+        $set: { userId, bookId, shelf, updatedAt: new Date() },
+      };
+      const result = await shelvesCollection.updateOne(filter, updateDoc, {
+        upsert: true,
+      });
+      res.send(result);
+    });
+
+    // ========= Review Routes =========
+    // Get approved reviews for a book
+    app.get("/api/reviews/:bookId", async (req, res) => {
+      const bookId = req.params.bookId;
+      const query = { bookId, status: "approved" };
+      const result = await reviewsCollection
+        .find(query)
+        .sort({ _id: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+    // Submit a review
+    app.post("/api/reviews", async (req, res) => {
+      const reviewData = req.body;
+      const newReview = {
+        ...reviewData,
+        status: "pending",
+        createdAt: new Date(),
+      };
+      const result = await reviewsCollection.insertOne(newReview);
       res.send(result);
     });
 

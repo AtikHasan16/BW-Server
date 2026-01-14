@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
 const db = client.db("book-worm");
 const userCollection = db.collection("users");
 const booksCollection = db.collection("books");
-
+const genresCollection = db.collection("genres");
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -110,6 +110,49 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await booksCollection.deleteOne(query);
+      res.send(result);
+      // ... existing books routes ...
+    });
+
+    // ========= Generic Routes =========
+
+    // Get all genres
+    app.get("/api/genres", async (req, res) => {
+      const result = await genresCollection.find().sort({ name: 1 }).toArray();
+      res.send(result);
+    });
+
+    // Add new genre
+    app.post("/api/genres", async (req, res) => {
+      const genreData = req.body;
+      // Case insensitive check
+      const existing = await genresCollection.findOne({
+        name: { $regex: new RegExp(`^${genreData.name}$`, "i") },
+      });
+      if (existing) {
+        return res.status(400).send({ message: "Genre already exists" });
+      }
+      const result = await genresCollection.insertOne(genreData);
+      res.send(result);
+    });
+
+    // Update genre
+    app.patch("/api/genres/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedData,
+      };
+      const result = await genresCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Delete genre
+    app.delete("/api/genres/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await genresCollection.deleteOne(query);
       res.send(result);
     });
 

@@ -76,7 +76,7 @@ async function run() {
       }
       res.status(200).send({ message: "Login successful", existingUser });
     });
-
+    // ========= server listen ========
     app.listen(port, () => {
       console.log(`Database is breathing on http://localhost:${port}/`);
     });

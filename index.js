@@ -222,10 +222,36 @@ async function run() {
     });
 
     // ========= Review Routes =========
+    // Get all pending reviews
+    app.get("/api/reviews/pending", async (req, res) => {
+      const query = { status: "pending" };
+      const result = await reviewsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Approve a review
+    app.patch("/api/reviews/:id/approve", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: { status: "approved" },
+      };
+      const result = await reviewsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Delete a review
+    app.delete("/api/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await reviewsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // Get approved reviews for a book
     app.get("/api/reviews/:bookId", async (req, res) => {
       const bookId = req.params.bookId;
-      const query = { bookId, status: "approved" };
+      const query = { "bookInfo._id": bookId, status: "approved" }; // Adjusted to match potential embedded structure if bookInfo contains _id
       const result = await reviewsCollection
         .find(query)
         .sort({ _id: -1 })

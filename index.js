@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 2000;
@@ -23,6 +23,8 @@ const client = new MongoClient(uri, {
 // ========= MongoDB Connection =========
 const db = client.db("book-worm");
 const userCollection = db.collection("users");
+const booksCollection = db.collection("books");
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -59,7 +61,7 @@ async function run() {
     // ========= User Login ========
     app.post("/api/users/login", async (req, res) => {
       const rawUser = req.body;
-      console.log(rawUser);
+      // console.log(rawUser);
 
       const existingUser = await userCollection.findOne({
         email: rawUser.email,
@@ -76,6 +78,41 @@ async function run() {
       }
       res.status(200).send({ message: "Login successful", existingUser });
     });
+
+    // ========= Books Routes =========
+    // Create new book
+    app.post("/api/books", async (req, res) => {
+      const bookData = req.body;
+      const result = await booksCollection.insertOne(bookData);
+      res.send(result);
+    });
+
+    // Get all books
+    app.get("/api/books", async (req, res) => {
+      const result = await booksCollection.find().toArray();
+      res.send(result);
+    });
+
+    // Update book details
+    app.patch("/api/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedData,
+      };
+      const result = await booksCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Delete a book
+    app.delete("/api/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await booksCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // ========= server listen ========
     app.listen(port, () => {
       console.log(`Database is breathing on http://localhost:${port}/`);

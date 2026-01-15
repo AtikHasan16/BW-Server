@@ -221,6 +221,34 @@ async function run() {
       res.send(result);
     });
 
+    // Get shelves by userId
+    app.get("/api/shelves/:userId", async (req, res) => {
+      const userId = req.params.userId;
+      const query = { userId };
+      const result = await shelvesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // Update shelf (status or progress)
+    app.patch("/api/shelves/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: updatedData,
+      };
+      const result = await shelvesCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Delete shelf
+    app.delete("/api/shelves/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await shelvesCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // ========= Review Routes =========
     // Get all pending reviews
     app.get("/api/reviews/pending", async (req, res) => {
